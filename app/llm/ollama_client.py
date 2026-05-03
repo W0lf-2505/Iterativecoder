@@ -22,5 +22,4 @@ class OllamaClient(BaseLLM):
                 "stream": False
             }
         )
-
         return response.json()["response"]

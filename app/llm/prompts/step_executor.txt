@@ -45,23 +45,15 @@ If you violate these rules, the system will break.
 
 You MUST use ONLY the allowed arguments:
 
-write_to_file → file_path, data
-read_from_file → file_path
-append_to_file → file_path, data
-delete_file → file_path
-list_files_in_directory → directory_path
-create_directory → directory_path
-delete_directory → directory_path
+{{ registered_tools }}
 
-run_command → command, cwd (ALLOWED_COMMANDS = ["python", "pip", "pytest", "curl", "docker"])
-install_package → package_name , package_name2 , package_name3
-run_tests → no arguments
-create_virtual_environment → env_name
-activate_virtual_environment → env_name
-
-store_memory → key, value
-retrieve_memory → query
-
+Check all the tools and only use the correct one each time, Like file tools for file/folder actions, terminal commands for terminal actions.
+use 
+- create_virtual_environment(env_name): Create virtual environment
+- activate_virtual_environment(env_name): Activate virtual environment
+for environment
+run_command can only take Allowed Commands and && chaining not allowed
+Inline python execution not allowed
 DO NOT add extra fields
 DO NOT include unused arguments
 DO NOT guess argument names

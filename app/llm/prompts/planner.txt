@@ -6,24 +6,12 @@ You DO NOT execute anything.
 You DO NOT call tools.
 You ONLY create a plan.
 
-Create the plan so that only the below functions can be used to execute the plan:
+Create the plan so that only the below functions can be used to execute the plan and each step can take one function call max:
 
-write_to_file
-read_from_file
-append_to_file
-delete_file
-list_files_in_directory
-create_directory
-delete_directory
+{{ registered_tools }}
 
-run_command (ALLOWED_COMMANDS = ["python", "pip", "pytest", "curl", "docker"])
-install_package
-run_tests
-create_virtual_environment
-activate_virtual_environment
 
-store_memory
-retrieve_memory
+run_command can only take Allowed Commands and && chaining not allowed
 
 ---
 
@@ -50,11 +38,12 @@ retrieve_memory
 * No markdown, no explanations
 * Each step must be atomic and actionable
 * Steps must be ordered logically
-* Keep plan minimal (3–7 steps max)
+* Keep plan steps under 100 at all times
 * Do NOT repeat steps
 * Do NOT include tool names
 * Use plain English descriptions
 * If using python always use step to create virtual environment and a step to activate
+* Always have a step to have a README.MD file for project usage
 * Always plan tests for last steps
 
 ---

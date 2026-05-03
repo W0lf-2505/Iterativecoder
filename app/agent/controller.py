@@ -6,8 +6,10 @@ from app.agent.planner import Planner
 from app.agent.state import AgentState
 from app.agent.replanner import Replanner
 from app.agent.step_executor import StepExecutorLLM
+from app.agent.debugger import DebuggerLLM
 from app.executor.parser import parse_action
 from datetime import datetime
+import json
 
 
 class Controller:
@@ -18,6 +20,7 @@ class Controller:
         self.state = AgentState()
         self.replanner = Replanner()
         self.step_llm = StepExecutorLLM()
+        self.debuggerllm = DebuggerLLM()
 
 
     def _init_project(self):
@@ -25,7 +28,7 @@ class Controller:
             now = datetime.now()
             self.state.project = f"demo_project_{now.strftime('%Y%m%d_%H%M%S_%f')}"
 
-    def run(self, goal: str, max_retries=10):
+    def run(self, goal: str, max_retries=10, callback=None):
 
         self.state.goal = goal
         self._init_project()
@@ -34,11 +37,19 @@ class Controller:
         # Step 1: Get plan
         plan = self.planner.create_plan(goal, self.state)
 
+        def log(msg):
+            print(msg)
+            if callback:
+                callback(msg)
+
+        log(f"PLAN: {json.dumps({'plan': plan['plan']})}") 
+
         while True:
             flag = True
             print("PLAN:", plan)
             # Step 2: Execute plan step-by-step
             for step in plan["plan"]:
+                log(f"STEP: {step['description']}")
 
                 description = step["description"]
                 print(f"\n➡ STEP: {description}")
@@ -75,6 +86,7 @@ class Controller:
                 result = self.executor.execute(validated)
 
                 print("RESULT:", result)
+                log(f"RESULT: {json.dumps(result)}") 
 
                 if result["status"] == "error" and self.retry_count <= max_retries:
                     print("Step failed → Replanning...")
@@ -90,6 +102,7 @@ class Controller:
                     print("NEW PLAN:", new_plan)
 
                     plan = new_plan
+                    log(f"NEW PLAN: {json.dumps({'plan': plan['plan']})}") 
                     print(plan)
                     flag = False
                     break
@@ -124,3 +137,7 @@ class Controller:
                 print("Retry due to bad LLM output:", e)
 
         raise ValueError("Failed to get valid action from LLM")
+    
+    def analyze_error(self, error_message: str):
+
+        return self.debuggerllm.generate(error_message)

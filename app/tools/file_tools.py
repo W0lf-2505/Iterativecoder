@@ -4,6 +4,8 @@ import os
 from .base_tool import BaseTool
 from app.schema.tools_response import build_response
 
+import re
+
 
 class FileTools(BaseTool):
 
@@ -276,4 +278,118 @@ class FileTools(BaseTool):
                 exit_code=1,
                 error_type=type(e).__name__,
                 error_message=str(e)
+            )
+
+    def list_files_recursive(self, directory_path):
+
+            try:
+                file_tree = []
+
+                for root, dirs, files in os.walk(directory_path):
+                    for file in files:
+                        full_path = os.path.join(root, file)
+                        file_tree.append(full_path)
+
+                return build_response(
+                    tool="list_files_recursive",
+                    input_data={"directory_path": directory_path},
+                    stdout="\n".join(file_tree),
+                    exit_code=0
+                )
+
+            except Exception as e:
+                return build_response(
+                    tool="list_files_recursive",
+                    input_data={"directory_path": directory_path},
+                    stderr=str(e),
+                    exit_code=1
+                )
+            
+    def read_multiple_files(self, file_paths):
+
+        results = {}
+
+        for path in file_paths:
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    results[path] = f.read()
+            except Exception as e:
+                results[path] = f"ERROR: {str(e)}"
+
+        return build_response(
+            tool="read_multiple_files",
+            input_data={"file_paths": file_paths},
+            stdout=str(results),
+            exit_code=0
+        )
+
+    def search_in_files(self, directory_path, keyword):
+
+        matches = []
+
+        for root, _, files in os.walk(directory_path):
+            for file in files:
+                path = os.path.join(root, file)
+
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        for i, line in enumerate(f.readlines(), 1):
+                            if keyword in line:
+                                matches.append(f"{path}:{i}: {line.strip()}")
+                except:
+                    continue
+
+        return build_response(
+            tool="search_in_files",
+            input_data={"keyword": keyword},
+            stdout="\n".join(matches),
+            exit_code=0
+        )
+
+    def detect_dependencies(self, file_path):
+
+        imports = []
+
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            matches = re.findall(r'^(?:import|from)\s+([\w\.]+)', content, re.MULTILINE)
+
+            imports = list(set([m.split('.')[0] for m in matches]))
+
+            return build_response(
+                tool="detect_dependencies",
+                input_data={"file_path": file_path},
+                stdout=str(imports),
+                exit_code=0
+            )
+
+        except Exception as e:
+            return build_response(
+                tool="detect_dependencies",
+                input_data={"file_path": file_path},
+                stderr=str(e),
+                exit_code=1
+            )
+        
+    def apply_fix(self, file_path, new_code):
+
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(new_code)
+
+            return build_response(
+                tool="apply_fix",
+                input_data={"file_path": file_path},
+                stdout="File updated successfully",
+                exit_code=0
+            )
+
+        except Exception as e:
+            return build_response(
+                tool="apply_fix",
+                input_data={"file_path": file_path},
+                stderr=str(e),
+                exit_code=1
             )

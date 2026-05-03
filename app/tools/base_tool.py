@@ -81,6 +81,7 @@ class BaseTool:
                 error_message=str(e)
             )
 
+
     @staticmethod
     def store_memory(key: str, value: str):
         if not key or not value:
@@ -104,5 +105,18 @@ class BaseTool:
             tool="retrieve_memory",
             input_data={"query": query},
             stdout=BaseTool.MEMORY.get(query, "No memory found"),
+            exit_code=0
+        )
+    
+    def analyze_error(self, error_message):
+        
+        from app.agent.debugger import DebuggerLLM
+        self.llm = DebuggerLLM()
+        response = self.llm.generate(error_message)
+
+        return build_response(
+            tool="analyze_error",
+            input_data={"error": error_message},
+            stdout=response,
             exit_code=0
         )

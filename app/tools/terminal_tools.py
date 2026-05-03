@@ -106,8 +106,12 @@ class TerminalTools(BaseTool):
             
             if os.path.exists(activate_script):
                 print(f"To activate the virtual environment, run: source {activate_script}")
-                subprocess.run(f"source {activate_script}", cwd=cwd,
-                    capture_output=True,shell=True)
+                if os.name == 'nt':
+                    subprocess.run(f"./{activate_script}", cwd=cwd,
+                        capture_output=True,shell=True)
+                else:
+                    subprocess.run(f"source {activate_script}", cwd=cwd,
+                        capture_output=True,shell=True)
                 return build_response(
                     tool="activate_virtual_environment",
                     input_data={"env_name": env_name},

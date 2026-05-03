@@ -19,39 +19,6 @@ class ToolRegistry:
 
         # 🔑 Registry
         self._registry: Dict[str, Dict[str, Dict[str, Any]]] = {
-            "terminal_tools": {
-                "run_command": {
-                    "function": self.terminal_tools.run_command,
-                    "description": "Execute a shell command",
-                    "args": ["command","cwd"]
-                },
-                "install_package": {
-                    "function": self.terminal_tools.install_package,
-                    "description": "Install a Python package",
-                    "args": ["package_name"]
-                },
-                "create_virtual_environment": {
-                    "function": self.terminal_tools.create_virtual_environment,
-                    "description": "Create virtual environment",
-                    "args": ["env_name"]
-                },
-                "activate_virtual_environment": {
-                    "function": self.terminal_tools.activate_virtual_environment,
-                    "description": "Activate virtual environment",
-                    "args": ["env_name"]
-                },
-                "deactivate_virtual_environment": {
-                    "function": self.terminal_tools.deactivate_virtual_environment,
-                    "description": "Deactivate virtual environment",
-                    "args": []
-                },
-                "run_in_container": {
-                    "function": self.terminal_tools.run_in_container,
-                    "description": "Run command in container",
-                    "args": ["container_name", "command"]
-                },
-            },
-
             "base_tools": {
                 "search_web": {
                     "function": self.base_tools.search_web,
@@ -69,15 +36,6 @@ class ToolRegistry:
                     "args": ["query"]
                 },
             },
-
-            "test_tools": {
-                "run_tests": {
-                    "function": run_tests,
-                    "description": "Run project tests",
-                    "args": []
-                }
-            },
-
             "file_tools": {
                 "write_to_file": {
                     "function": self.file_tools.write_to_file,
@@ -114,6 +72,72 @@ class ToolRegistry:
                     "description": "Delete directory",
                     "args": ["directory_path"]
                 }
+            },
+            "terminal_tools": {
+                "run_command": {
+                    "function": self.terminal_tools.run_command,
+                    "description": "Execute a shell command (ALLOWED_COMMANDS = ['python', 'pip', 'pytest', 'curl', 'docker'])",
+                    "args": ["command","cwd"]
+                },
+                "install_package": {
+                    "function": self.terminal_tools.install_package,
+                    "description": "Install a Python package",
+                    "args": ["package_name"]
+                },
+                "create_virtual_environment": {
+                    "function": self.terminal_tools.create_virtual_environment,
+                    "description": "Create virtual environment",
+                    "args": ["env_name"]
+                },
+                "activate_virtual_environment": {
+                    "function": self.terminal_tools.activate_virtual_environment,
+                    "description": "Activate virtual environment",
+                    "args": ["env_name"]
+                },
+                "deactivate_virtual_environment": {
+                    "function": self.terminal_tools.deactivate_virtual_environment,
+                    "description": "Deactivate virtual environment",
+                    "args": []
+                },
+                "run_in_container": {
+                    "function": self.terminal_tools.run_in_container,
+                    "description": "Run command in container",
+                    "args": ["container_name", "command"]
+                },
+            },
+            "test_tools": {
+                "run_tests": {
+                    "function": run_tests,
+                    "description": "Run project tests",
+                    "args": []
+                }
+            },
+            "analysis_tools": {
+                "list_files_recursive": {
+                    "function": self.file_tools.list_files_recursive,
+                    "description": "Recursively list all files in a directory",
+                    "args": ["directory_path"]
+                },
+                "read_multiple_files": {
+                    "function": self.file_tools.read_multiple_files,
+                    "description": "Read contents of multiple files",
+                    "args": ["file_paths"]
+                },
+                "search_in_files": {
+                    "function": self.file_tools.search_in_files,
+                    "description": "Search for a keyword across files in a directory",
+                    "args": ["directory_path", "keyword"]
+                },
+                "detect_dependencies": {
+                    "function": self.file_tools.detect_dependencies,
+                    "description": "Detect imported modules from a Python file",
+                    "args": ["file_path"]
+                },
+                "analyze_error": {
+                    "function": self.base_tools.analyze_error,
+                    "description": "Analyze an error message and suggest cause and fix",
+                    "args": ["error_message"]
+                }
             }
         }
 
@@ -148,3 +172,25 @@ class ToolRegistry:
             if tool_name in tools:
                 return tools[tool_name]
         return None
+    
+    def get_tools_prompt(self) -> str:
+        """
+        Returns a formatted string of all tools and their arguments
+        for injection into LLM prompt.
+        """
+
+        lines = []
+
+        for category, tools in self._registry.items():
+            lines.append(f"\n[{category}]")
+
+            for tool_name, meta in tools.items():
+                args = meta.get("args", [])
+                desc = meta.get("description", "")
+
+                args_str = ", ".join(args)
+
+                lines.append(f"- {tool_name}({args_str}): {desc}")
+        print("\n".join(lines))
+
+        return "\n".join(lines)

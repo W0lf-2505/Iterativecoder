@@ -32,6 +32,7 @@ The system can already:
 * ✔ Retry on LLM errors
 * ✔ Replan on failure
 * ✔ Maintain execution state
+* ✔ Expose agent via FastAPI REST + WebSocket routes
 
 ---
 
@@ -147,6 +148,93 @@ while True:
 
 ---
 
+## 🌐 API Routes
+
+The agent is exposed via **FastAPI** with REST and WebSocket endpoints.
+
+### REST
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `POST` | `/run` | Submit a goal and start the agent. Returns a `task_id`. |
+
+### WebSocket
+
+| Route | Description |
+|-------|-------------|
+| `/ws/{task_id}` | Stream real-time agent output for a running task. |
+
+#### WebSocket message format
+
+Messages are prefixed by type:
+
+```
+PLAN: {"plan": [{"step": 1, "description": "..."}]}
+STEP: Create a project directory
+RESULT: {"status": "success", "tool": "write_to_file", ...}
+STATUS: complete
+```
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone & install
+
+```bash
+git clone <repo>
+cd iterativecoder
+pip install -r requirements.txt
+```
+
+### 2. Run the backend
+
+```bash
+uvicorn app.api.server:app --reload
+```
+
+The API will be available at `http://localhost:8000`.
+Interactive docs at `http://localhost:8000/docs`.
+
+---
+
+## 🖥️ Agent UI (Frontend)
+
+The `AgentUI/` folder contains a **Vite + React** frontend that connects to the backend.
+
+### Setup
+
+```bash
+cd AgentUI
+npm install
+```
+
+### Generate typed API client
+
+The frontend uses an auto-generated typed client from the FastAPI OpenAPI schema.
+Make sure the backend is running first, then:
+
+```bash
+npm run generate-api
+```
+
+This reads `http://localhost:8000/openapi.json` and outputs a fully typed client to `src/lib/api/`.
+
+> The generate script is defined in `package.json` as:
+> ```json
+> "generate-api": "openapi-ts --input http://localhost:8000/openapi.json --output src/lib/api --client @hey-api/client-fetch"
+> ```
+
+### Run the frontend
+
+```bash
+npm run dev
+```
+
+The UI will be available at `http://localhost:5173`.
+
+---
+
 ## 🔥 Key Features Implemented
 
 ### ✅ 1. Deterministic Execution Context
@@ -210,7 +298,7 @@ No LLM guessing.
 ### Core
 
 * Python
-* FastAPI (for future interface)
+* FastAPI
 
 ### LLM
 
@@ -223,6 +311,12 @@ No LLM guessing.
 
 * subprocess (safe execution)
 * python-dotenv (config)
+
+### Frontend
+
+* Vite + React + TypeScript
+* `@hey-api/openapi-ts` — typed API client generation
+* `@hey-api/client-fetch` — fetch-based HTTP client
 
 ---
 
@@ -328,6 +422,7 @@ Planner sometimes generates:
 * ✔ Context injection
 * ✔ Tool safety
 * ✔ JSON robustness
+* ✔ FastAPI routes + WebSocket streaming
 
 ---
 
@@ -364,27 +459,11 @@ Planner sometimes generates:
 
 ---
 
-## 🚀 Getting Started
-
-```bash
-git clone <repo>
-cd iterativecoder
-pip install -r requirements.txt
-```
-
-Run:
-
-```bash
-python -m app.tests.test_llm_chain
-```
-
----
-
 ## 💡 Vision
 
 IterativeCoder is evolving into:
 
-> A system that doesn’t just generate code
+> A system that doesn't just generate code
 > but **executes, validates, and improves it autonomously**
 
 ---
@@ -407,4 +486,4 @@ Open for experimentation. Expect rapid iteration and breaking changes.
 
 ## 📄 License
 
-MIT
+MIT License — see LICENSE file for details.
