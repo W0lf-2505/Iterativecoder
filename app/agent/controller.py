@@ -25,7 +25,7 @@ class Controller:
             now = datetime.now()
             self.state.project = f"demo_project_{now.strftime('%Y%m%d_%H%M%S_%f')}"
 
-    def run(self, goal: str, max_retries=5):
+    def run(self, goal: str, max_retries=10):
 
         self.state.goal = goal
         self._init_project()
@@ -35,6 +35,7 @@ class Controller:
         plan = self.planner.create_plan(goal, self.state)
 
         while True:
+            flag = True
             print("PLAN:", plan)
             # Step 2: Execute plan step-by-step
             for step in plan["plan"]:
@@ -88,7 +89,9 @@ class Controller:
 
                     print("NEW PLAN:", new_plan)
 
-                    plan = new_plan["plan"]
+                    plan = new_plan
+                    print(plan)
+                    flag = False
                     break
                     
                 else:
@@ -100,8 +103,9 @@ class Controller:
                         result=result
                     )
 
-            print("\n Plan completed")
-            return
+            if flag:
+                print("\n Plan completed")
+                return
 
     def generate_valid_action(self, description):
 
