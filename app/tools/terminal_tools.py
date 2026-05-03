@@ -46,7 +46,7 @@ class TerminalTools(BaseTool):
                 )
         return self.failed_sanity_check_response
 
-    def install_package(self, package_name):
+    def install_package(self, package_name, cwd=None):
         if not package_name.isidentifier():
             return build_response(
                 tool="install_package",
@@ -56,8 +56,12 @@ class TerminalTools(BaseTool):
             )
         if self.command_sanity_check(f"pip install {package_name}"):
             try:
-                subprocess.run(f"pip install {package_name}", 
-                    capture_output=True,shell=True, check=True)
+                subprocess.run(
+                    f"pip install {package_name}", 
+                    cwd=cwd,
+                    capture_output=True,
+                    shell=True, 
+                    check=True)
                 return build_response(
                     tool="install_package",
                     input_data={"package_name": package_name},
@@ -73,10 +77,10 @@ class TerminalTools(BaseTool):
                 )
         return self.failed_sanity_check_response
 
-    def create_virtual_environment(self, env_name):
+    def create_virtual_environment(self, env_name, cwd=None):
         if self.command_sanity_check(f"python -m venv {env_name}"):
             try:
-                subprocess.run(f"python -m venv {env_name}", 
+                subprocess.run(f"python -m venv {env_name}", cwd=cwd,
                     capture_output=True,shell=True, check=True)
                 return build_response(
                     tool="create_virtual_environment",
@@ -93,7 +97,7 @@ class TerminalTools(BaseTool):
                 )
         return self.failed_sanity_check_response
 
-    def activate_virtual_environment(self, env_name):
+    def activate_virtual_environment(self, env_name, cwd=None):
         if self.path_sanity_check(env_name):
             if os.name == 'nt':  # Windows
                 activate_script = os.path.join(env_name, 'Scripts', 'activate')
@@ -102,7 +106,7 @@ class TerminalTools(BaseTool):
             
             if os.path.exists(activate_script):
                 print(f"To activate the virtual environment, run: source {activate_script}")
-                subprocess.run(f"source {activate_script}", 
+                subprocess.run(f"source {activate_script}", cwd=cwd,
                     capture_output=True,shell=True)
                 return build_response(
                     tool="activate_virtual_environment",
@@ -120,10 +124,10 @@ class TerminalTools(BaseTool):
                 )
         return self.failed_sanity_check_response
 
-    def deactivate_virtual_environment(self):
+    def deactivate_virtual_environment(self, cwd=None):
         print("To deactivate the virtual environment, run: deactivate")
         try:
-            subprocess.run("deactivate", shell=True, 
+            subprocess.run("deactivate", shell=True, cwd=cwd,
                     capture_output=True,check=True)
             return build_response(
                 tool="deactivate_virtual_environment",
@@ -140,10 +144,10 @@ class TerminalTools(BaseTool):
                 exit_code=e.returncode
             )
 
-    def run_in_container(self, container_name, command):
+    def run_in_container(self, container_name, command, cwd=None):
         if self.command_sanity_check(f"docker exec {container_name} {command}"):
             try:
-                result = subprocess.run(f"docker exec {container_name} {command}", shell=True, 
+                result = subprocess.run(f"docker exec {container_name} {command}", cwd=cwd,shell=True, 
                     capture_output=True,check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 return build_response(
                     tool="run_in_container",
