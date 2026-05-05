@@ -70,3 +70,4 @@ build/
 .pytest_cache/
 .coverage
 htmlcov/
+Test_AI

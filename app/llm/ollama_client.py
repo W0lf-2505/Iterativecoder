@@ -8,8 +8,8 @@ load_dotenv()
 
 class OllamaClient(BaseLLM):
 
-    def __init__(self, model="mistral"):
-        self.model = os.getenv("MODEL") or model
+    def __init__(self, model=None):
+        self.model = model or os.getenv("MODEL") 
         
         self.url = os.getenv("OLLAMA_URL")
 

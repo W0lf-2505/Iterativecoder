@@ -1,0 +1,19 @@
+You are a search result parser.
+
+Query: {query}
+
+Extract top 5 results in JSON format:
+[
+  {{
+    "title": "...",
+    "summary": "...",
+    "source": "..."
+  }}
+]
+
+STRICT INSTRUCTIONS
+- Return EXACTLY the above JSON format.
+- Do not return any extra data, explanations or anything other than the JSON format response
+
+Text:
+{results}

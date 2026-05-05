@@ -3,7 +3,11 @@
 import subprocess
 from typing import Dict
 from app.schema.tools_response import build_response
-
+from app.llm.google_client import GoogleClient
+from bs4 import BeautifulSoup
+import urllib.parse
+import requests
+import json
 
 class BaseTool:
 
@@ -19,6 +23,8 @@ class BaseTool:
         "..", "/etc", "C:\\Windows"
     ]
 
+    def __init__(self):
+        self.google_client = GoogleClient()
     # =========================
     # 🔍 SANITY CHECKS
     # =========================
@@ -46,22 +52,134 @@ class BaseTool:
     # 🌐 BASE TOOLS
     # =========================
 
-    @staticmethod
-    def search_web(query: str):
+    
+    def search_web(self,query: str):
+        if not query or not query.strip():
+            raise ValueError("Search query cannot be empty")
+        def clean_query(q: str) -> str:
+            q = q.strip()
+            if q.lower().startswith("search "):
+                q = q[7:]
+            return q
+
+        url = "https://html.duckduckgo.com/html/?q=" + urllib.parse.quote_plus(clean_query(query))
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        }
+
+        try:
+            res = requests.get(url, headers=headers, timeout=10)
+            res.raise_for_status()
+
+            soup = BeautifulSoup(res.text, "html.parser")
+
+            raw_results = []
+
+            for g in soup.select("div.tF2Cxc"):
+                title = g.select_one("h3")
+                link = g.select_one("a")
+                snippet = g.select_one(".VwiC3b")
+
+                if title and link:
+                    raw_results.append({
+                        "title": title.get_text(strip=True),
+                        "link": link.get("href"),
+                        "snippet": snippet.get_text(" ", strip=True) if snippet else ""
+                    })
+
+            if not raw_results:
+                for g in soup.select("div.g"):
+                    title = g.select_one("h3")
+                    link = g.select_one("a")
+
+                    if title and link:
+                        raw_results.append({
+                            "title": title.get_text(strip=True),
+                            "link": link.get("href"),
+                            "snippet": ""
+                        })
+
+            # Normalize
+            def normalize(r):
+                return {
+                    "title": r["title"][:300],
+                    "link": r["link"],
+                    "snippet": r["snippet"][:300]
+                }
+
+            results = [normalize(r) for r in raw_results]
+
+            # Rank
+            def score(r):
+                q = query.lower()
+                s = 0
+                if q in r["title"].lower():
+                    s += 2
+                if q in r["snippet"].lower():
+                    s += 1
+                return s
+
+            def extract_clean_text(html: str) -> str:
+                soup = BeautifulSoup(html, "html.parser")
+
+                # Remove garbage
+                for tag in soup(["script", "style", "noscript", "header", "footer"]):
+                    tag.decompose()
+
+                text = soup.get_text(separator=" ")
+
+                # Collapse whitespace
+                text = " ".join(text.split())
+
+                return text[:4000]  # hard cap to control token cost
+            
+            results.sort(key=score, reverse=True)
+            if not results:
+                cleaned_text = extract_clean_text(res.text)
+
+                return build_response(
+                    tool="search_web",
+                    input_data={"query": query, "results": [cleaned_text]},
+                    stdout="",
+                    stderr="run_llm_summary",
+                    exit_code=1
+                )
+
+            structured_output = {
+                "query": query,
+                "results": results[:5],
+                "count": len(results)
+            }
+
+            return build_response(
+                tool="search_web",
+                input_data={"query": query},
+                stdout=json.dumps(structured_output, ensure_ascii=False),  # FIX
+                stderr="",
+                exit_code=0
+            )
+
+        except Exception as e:
+            return build_response(
+                tool="search_web",
+                input_data={"query": query},
+                stdout="",
+                stderr=str(e),
+                exit_code=1,
+                error_type=type(e).__name__,
+                error_message=str(e)
+            )
+        
+    def search_google_web(self,query: str):
+        
         if not query:
             raise ValueError("Search query cannot be empty")
 
-        command = f"curl -s \"https://www.google.com/search?q={query}\""
+        self.google_client.generate(query)
 
         try:
-            BaseTool.command_sanity_check(command)
-
-            result = subprocess.run(
-                command,
-                shell=True,
-                capture_output=True,
-                text=True
-            )
+            result = self.google_client.generate(query)
 
             return build_response(
                 tool="search_web",

@@ -7,6 +7,7 @@ from app.agent.state import AgentState
 from app.agent.replanner import Replanner
 from app.agent.step_executor import StepExecutorLLM
 from app.agent.debugger import DebuggerLLM
+from app.agent.summarizer import SummarizerLLM
 from app.executor.parser import parse_action
 from datetime import datetime
 import json
@@ -21,6 +22,8 @@ class Controller:
         self.replanner = Replanner()
         self.step_llm = StepExecutorLLM()
         self.debuggerllm = DebuggerLLM()
+        self.summaryllm = SummarizerLLM()
+
 
 
     def _init_project(self):
@@ -28,97 +31,152 @@ class Controller:
             now = datetime.now()
             self.state.project = f"demo_project_{now.strftime('%Y%m%d_%H%M%S_%f')}"
 
+    def route_input(self, goal: str) -> str:
+        goal_lower = goal.lower()
+
+        if any(word in goal_lower for word in [
+            "create", "build", "write", "run", "fix", "implement"
+        ]):
+            return "agent"
+
+        if any(word in goal_lower for word in [
+            "what is", "explain", "who is", "search", "find"
+        ]):
+            return "search"
+
+        return "agent"  # default
+
+    def route(self, goal):
+        
+        route = self.route_input(goal)
+
+        if route == "search":
+            return "reasoning"
+
+        if route == "agent":
+            return "planning"
+
     def run(self, goal: str, max_retries=10, callback=None):
 
         self.state.goal = goal
         self._init_project()
         self.retry_count = 0
-
-        # Step 1: Get plan
-        plan = self.planner.create_plan(goal, self.state)
-
+    
         def log(msg):
             print(msg)
             if callback:
                 callback(msg)
+        route = self.route(goal)
 
-        log(f"PLAN: {json.dumps({'plan': plan['plan']})}") 
-
-        while True:
-            flag = True
-            print("PLAN:", plan)
-            # Step 2: Execute plan step-by-step
-            for step in plan["plan"]:
-                log(f"STEP: {step['description']}")
-
-                description = step["description"]
-                print(f"\n➡ STEP: {description}")
+        if route == "planning":
+            # Step 1: Get plan
+            plan = self.planner.create_plan(goal, self.state)
 
 
-                # Parse JSON
-                action = self.generate_valid_action(description)
-                if "project" not in action["input"] or not action["input"]["project"]:
-                    action["input"]["project"] = self.state.project
-                
-                if "project" in action["input"] or action["input"]["project"]:
-                    self.state.project = action["input"]["project"]
+            log(f"PLAN: {json.dumps({'plan': plan['plan']})}") 
 
-                if isinstance(action, list):
-                    raise ValueError("Multiple actions returned — invalid step execution")
+            while True:
+                flag = True
+                print("PLAN:", plan)
+                # Step 2: Execute plan step-by-step
+                for step in plan["plan"]:
+                    log(f"STEP: {step['description']}")
+
+                    description = step["description"]
+                    print(f"\n➡ STEP: {description}")
 
 
-                # Validate
-                validated = validate_action(action)
-                
-                # Inject previous outputs if needed (e.g.,
-                input_data = action.get("input", {})
-
-                if input_data.get("data") == "USE_PREVIOUS_STDOUT":
-                    input_data["data"] = self.state.last_output
-
-                if input_data.get("data") == "USE_PREVIOUS_STDERR":
-                    input_data["data"] = self.state.last_error
-
-                if "<use previous stdout>" in input_data.get("data", ""):
-                    input_data["data"] = self.state.last_output
-
-                # Execute
-                result = self.executor.execute(validated)
-
-                print("RESULT:", result)
-                log(f"RESULT: {json.dumps(result)}") 
-
-                if result["status"] == "error" and self.retry_count <= max_retries:
-                    print("Step failed → Replanning...")
-
-                    self.retry_count += 1
-                    new_plan = self.replanner.replan(
-                        goal=self.state.goal,
-                        state=self.state,
-                        failed_step=description,
-                        error=result["error"]["message"]
-                    )
-
-                    print("NEW PLAN:", new_plan)
-
-                    plan = new_plan
-                    log(f"NEW PLAN: {json.dumps({'plan': plan['plan']})}") 
-                    print(plan)
-                    flag = False
-                    break
+                    # Parse JSON
+                    action = self.generate_valid_action(description)
+                    if "project" not in action["input"] or not action["input"]["project"]:
+                        action["input"]["project"] = self.state.project
                     
-                else:
+                    if "project" in action["input"] or action["input"]["project"]:
+                        self.state.project = action["input"]["project"]
 
-                    # Store output in state
-                    self.state.add_step(
-                        step_description=description,
-                        action=action,
-                        result=result
+                    if isinstance(action, list):
+                        raise ValueError("Multiple actions returned — invalid step execution")
+
+
+                    # Validate
+                    validated = validate_action(action)
+                    
+                    # Inject previous outputs if needed (e.g.,
+                    input_data = action.get("input", {})
+
+                    if input_data.get("data") == "USE_PREVIOUS_STDOUT":
+                        input_data["data"] = self.state.last_output
+
+                    if input_data.get("data") == "USE_PREVIOUS_STDERR":
+                        input_data["data"] = self.state.last_error
+
+                    if "<use previous stdout>" in input_data.get("data", ""):
+                        input_data["data"] = self.state.last_output
+
+                    # Execute
+                    result = self.executor.execute(validated)
+
+                    print("RESULT:", result)
+                    log(f"RESULT: {json.dumps(result)}") 
+
+                    if result["status"] == "error" and self.retry_count <= max_retries:
+                        print("Step failed → Replanning...")
+
+                        self.retry_count += 1
+                        new_plan = self.replanner.replan(
+                            goal=self.state.goal,
+                            state=self.state,
+                            failed_step=description,
+                            error=result["error"]["message"]
+                        )
+
+                        print("NEW PLAN:", new_plan)
+
+                        plan = new_plan
+                        log(f"NEW PLAN: {json.dumps({'plan': plan['plan']})}") 
+                        print(plan)
+                        flag = False
+                        break
+                        
+                    else:
+
+                        # Store output in state
+                        self.state.add_step(
+                            step_description=description,
+                            action=action,
+                            result=result
+                        )
+
+                if flag:
+                    print("\n Plan completed")
+                    return
+                
+        if route == "reasoning":
+            action =             {
+            "action": "search_web",
+            "input": {
+            "project": self.state.project,
+            "query": goal,
+            }}
+            validated = validate_action(action)
+
+            summary = self.executor.execute(validated)
+            if summary["output"]["exit_code"] == 1:
+                try:
+                    llmsummary = self.summaryllm.generate_action(
+                        
+                        summary["input"]["query"],
+                        summary["input"]["results"]
+
                     )
+                    log(f"Summary: {json.dumps(llmsummary) if isinstance(llmsummary, list) else llmsummary}")
+                except:
+                    summary["input"] = {"query": summary["input"]["query"]}
+                    log(f"Summary: {json.dumps(llmsummary) if isinstance(llmsummary, list) else llmsummary}")
 
-            if flag:
-                print("\n Plan completed")
-                return
+            else:
+                log(f"Summary: {summary}") 
+
 
     def generate_valid_action(self, description):
 

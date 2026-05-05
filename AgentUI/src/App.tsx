@@ -6,6 +6,7 @@ type EntryType = 'goal' | 'id' | 'conn' | 'disc' | 'plan' | 'step' | 'result' | 
 
 interface PlanStep { step: number; description: string }
 interface ResultObj { status: string; tool?: string; error?: { message?: string } | string; output?: { stdout?: string; stderr?: string } }
+interface SummaryItem { title: string; summary: string; source: string }
 
 type Entry =
   | { type: 'goal' | 'id' | 'conn' | 'disc' | 'step' | 'info'; text: string }
@@ -13,6 +14,7 @@ type Entry =
   | { type: 'new plan'; steps: PlanStep[] }
   | { type: 'result'; ok: boolean; obj: ResultObj }
   | { type: 'status'; ok: boolean; text: string }
+  | { type: 'summary'; items: SummaryItem[] } 
 
 function parseMessage(raw: string): Entry[] {
   const text = raw.trim()
@@ -24,7 +26,13 @@ function parseMessage(raw: string): Entry[] {
     } catch {}
     return [{ type: 'info', text }]
   }
-  
+  if (text.startsWith('Summary:')) {
+    try {
+      const items: SummaryItem[] = JSON.parse(text.slice(8).trim())
+      if (Array.isArray(items)) return [{ type: 'summary', items }]
+    } catch {}
+    return [{ type: 'info', text }]
+  }
   if (text.startsWith('NEW PLAN:')) {
     try {
       const obj = JSON.parse(text.slice(9).trim())
@@ -81,6 +89,21 @@ function PlanCard({ steps }: { steps: PlanStep[] }) {
   )
 }
 
+function SummaryCard({ items }: { items: SummaryItem[] }) {
+  return (
+    <div style={{ border: '0.5px solid #1a2e1a', borderRadius: 6, padding: '8px 10px', background: '#0a160a', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ fontSize: 10, color: '#4ade80', letterSpacing: '.08em' }}>summary</div>
+      {items.map((item, i) => (
+        <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 2 }}>
+          <span style={{ fontSize: 11.5, color: '#86efac', fontWeight: 500 }}>{item.title}</span>
+          <span style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.6 }}>{item.summary}</span>
+          {item.source && <span style={{ fontSize: 10, color: '#374151' }}>source: {item.source}</span>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function ResultCard({ ok, obj }: { ok: boolean; obj: ResultObj }) {
   const errMsg = obj.error ? (typeof obj.error === 'string' ? obj.error : obj.error.message) : null
   return (
@@ -99,10 +122,12 @@ function ResultCard({ ok, obj }: { ok: boolean; obj: ResultObj }) {
 
 function EntryView({ entry }: { entry: Entry }) {
   if (entry.type === 'plan') return <PlanCard steps={entry.steps} />
+  if (entry.type === 'new plan') return <PlanCard steps={entry.steps} />
   if (entry.type === 'result') return <ResultCard ok={entry.ok} obj={entry.obj} />
   if (entry.type === 'status') {
     return <Row tag="status" tagStyle={entry.ok ? { background: '#14291f', color: '#4ade80' } : { background: '#2d1111', color: '#f87171' }} text={entry.text} textColor={entry.ok ? '#86efac' : '#fca5a5'} />
   }
+  if (entry.type === 'summary') return <SummaryCard items={entry.items} />
   const t = TAG[entry.type] ?? TAG.info
   const textColors: Record<string, string> = { goal: '#64748b', id: '#94a3b8', conn: '#86efac', disc: '#fca5a5', step: '#7dd3fc', info: '#94a3b8' }
   return <Row tag={t.label} tagStyle={t.style} text={entry.text} textColor={textColors[entry.type] ?? '#cbd5e1'} />

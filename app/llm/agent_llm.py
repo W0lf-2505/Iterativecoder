@@ -5,8 +5,8 @@ from app.tools.registry import ToolRegistry
 
 class AgentLLM:
 
-    def __init__(self, prompt_file: str):
-        self.client = OllamaClient()
+    def __init__(self, prompt_file: str, model: str = None):
+        self.client = OllamaClient(model=model)
         self.registry = ToolRegistry()
 
         prompt_path = os.path.join(
