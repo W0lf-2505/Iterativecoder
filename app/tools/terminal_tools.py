@@ -77,7 +77,7 @@ class TerminalTools(BaseTool):
                 )
         return self.failed_sanity_check_response
 
-    def create_virtual_environment(self, env_name, cwd=None):
+    def create_virtual_environment(self, env_name="venv", cwd=None):
         if self.command_sanity_check(f"python -m venv {env_name}"):
             try:
                 subprocess.run(f"python -m venv {env_name}", cwd=cwd,
@@ -97,7 +97,7 @@ class TerminalTools(BaseTool):
                 )
         return self.failed_sanity_check_response
 
-    def activate_virtual_environment(self, env_name, cwd=None):
+    def activate_virtual_environment(self, env_name="venv", cwd=None):
         if self.path_sanity_check(env_name):
             if os.name == 'nt':  # Windows
                 activate_script = os.path.join(env_name, 'Scripts', 'activate')

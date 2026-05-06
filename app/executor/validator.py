@@ -23,12 +23,26 @@ BLOCKED_COMMANDS = [
     "reboot",
 ]
 
+def normalize_action(action):
+    mapping = {
+        "read_file": "read_from_file",
+        "write_file": "write_to_file",
+        "append_file": "append_to_file",
+        "list_directory": "list_files_in_directory",
+    }
+
+    tool = action.get("action")
+
+    if tool in mapping:
+        action["action"] = mapping[tool]
+
+    return action
 
 def validate_action(action: Dict[str, Any]) -> Dict[str, Any]:
     """
     Validate parsed action before execution
     """
-
+    action = normalize_action(action)
     tool = action.get("action")
     input_data = action.get("input", {})
     

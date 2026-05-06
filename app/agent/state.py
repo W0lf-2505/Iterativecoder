@@ -6,10 +6,11 @@ from typing import List, Dict, Any
 class AgentState:
 
     def __init__(self):
-        self.goal: str = ""
-        self.project: str = None
-        self.last_output: str = ""
-        self.last_error = "" 
+        self.project = ""
+        self.goal_history = []
+        self.execution_history = []
+        self.last_output = None
+        self.last_error = None
 
         # 🔥 Core addition
         self.execution_history: List[Dict[str, Any]] = []

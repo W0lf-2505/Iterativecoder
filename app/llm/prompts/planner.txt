@@ -13,6 +13,13 @@ Create the plan so that only the below functions can be used to execute the plan
 
 run_command can only take Allowed Commands and && chaining not allowed
 
+* Use correct tool for the task:
+  - File operations → file/folder tools
+  - Terminal operations → run_command
+  - Environment → create_virtual_environment / activate_virtual_environment
+
+  Specifically tell in description what tool should be prioritized
+
 ---
 
 ## Output Format (STRICT JSON ONLY)

@@ -57,14 +57,14 @@ class ToolRegistry:
                     "description": "Delete file",
                     "args": ["file_path"]
                 },
-                "list_files_in_directory": {
-                    "function": self.file_tools.list_files_in_directory,
-                    "description": "List files in directory",
-                    "args": ["directory_path"]
-                },
                 "create_directory": {
                     "function": self.file_tools.create_directory,
                     "description": "Create directory",
+                    "args": ["directory_path"]
+                },
+                "list_files_in_directory": {
+                    "function": self.file_tools.list_files_in_directory,
+                    "description": "List files in directory",
                     "args": ["directory_path"]
                 },
                 "delete_directory": {
@@ -76,7 +76,7 @@ class ToolRegistry:
             "terminal_tools": {
                 "run_command": {
                     "function": self.terminal_tools.run_command,
-                    "description": "Execute a shell command (ALLOWED_COMMANDS = ['python', 'pip', 'pytest', 'curl', 'docker'])",
+                    "description": "Execute allowed command (ALLOWED_COMMANDS = ['python', 'pip', 'pytest', 'curl', 'docker'])",
                     "args": ["command","cwd"]
                 },
                 "install_package": {

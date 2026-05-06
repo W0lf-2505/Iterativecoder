@@ -42,7 +42,7 @@ export type ValidationError = {
     };
 };
 
-export type RunAgentRunPostData = {
+export type RunRunPostData = {
     body?: never;
     path?: never;
     query: {
@@ -50,20 +50,24 @@ export type RunAgentRunPostData = {
          * Goal
          */
         goal: string;
+        /**
+         * Session Id
+         */
+        session_id: string;
     };
     url: '/run';
 };
 
-export type RunAgentRunPostErrors = {
+export type RunRunPostErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type RunAgentRunPostError = RunAgentRunPostErrors[keyof RunAgentRunPostErrors];
+export type RunRunPostError = RunRunPostErrors[keyof RunRunPostErrors];
 
-export type RunAgentRunPostResponses = {
+export type RunRunPostResponses = {
     /**
      * Successful Response
      */

@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { RunAgentRunPostData, RunAgentRunPostErrors, RunAgentRunPostResponses } from './types.gen';
+import type { RunRunPostData, RunRunPostErrors, RunRunPostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -19,6 +19,6 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 /**
- * Run Agent
+ * Run
  */
-export const runAgentRunPost = <ThrowOnError extends boolean = false>(options: Options<RunAgentRunPostData, ThrowOnError>) => (options.client ?? client).post<RunAgentRunPostResponses, RunAgentRunPostErrors, ThrowOnError>({ url: '/run', ...options });
+export const runRunPost = <ThrowOnError extends boolean = false>(options: Options<RunRunPostData, ThrowOnError>) => (options.client ?? client).post<RunRunPostResponses, RunRunPostErrors, ThrowOnError>({ url: '/run', ...options });

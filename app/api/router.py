@@ -4,6 +4,13 @@ import uuid
 
 from app.agent.controller import Controller
 
+controllers = {}
+
+def get_controller(session_id: str):
+    if session_id not in controllers:
+        controllers[session_id] = Controller()
+    return controllers[session_id]
+
 router = APIRouter()
 
 # in-memory store (fine for now)
@@ -11,28 +18,26 @@ active_tasks = {}
 
 
 @router.post("/run")
-def run_agent(goal: str):
+def run(goal: str, session_id: str):
+    controller = get_controller(session_id)
+
     task_id = str(uuid.uuid4())
 
-    controller = Controller()
-
-    # store logs per task
     active_tasks[task_id] = {
         "logs": [],
         "status": "running"
     }
 
-    def run():
-        try:
-            controller.run(goal, callback=lambda msg: active_tasks[task_id]["logs"].append(msg))
-            active_tasks[task_id]["status"] = "completed"
-        except Exception as e:
-            active_tasks[task_id]["logs"].append(str(e))
-            active_tasks[task_id]["status"] = "error"
+    def run_task():
+        controller.run(goal, callback=lambda msg: active_tasks[task_id]["logs"].append(msg))
+        active_tasks[task_id]["status"] = "completed"
 
-    Thread(target=run).start()
+    Thread(target=run_task).start()
 
-    return {"task_id": task_id}
+    return {
+        "task_id": task_id,
+        "session_id": session_id
+    }
 
 @router.websocket("/ws/{task_id}")
 async def websocket_endpoint(websocket: WebSocket, task_id: str):

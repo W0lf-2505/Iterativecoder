@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { runAgentRunPost } from './lib/api'
+import { runRunPost } from './lib/api'
 import './App.css'
 
 type EntryType = 'goal' | 'id' | 'conn' | 'disc' | 'plan' | 'step' | 'result' | 'status' | 'info' | 'new plan'
@@ -161,22 +161,30 @@ export default function App() {
   }
 
   async function runAgent() {
-    if (!goal.trim()) return
-    setRunning(true); setEntries([]); setTaskId(null)
-    push({ type: 'goal', text: goal })
-    try {
-      const { data, error } = await runAgentRunPost({ query: { goal } })
-      if (error) throw new Error(JSON.stringify(error))
-      const id = (data as any)?.task_id ?? (data as any)?.id
-      if (!id) throw new Error('no task_id in response')
-      setTaskId(id)
-      push({ type: 'id', text: id })
-      connectWS(id)
-    } catch (err: any) {
-      push({ type: 'disc', text: 'error: ' + err.message })
-      setRunning(false)
-    }
+  if (!goal.trim()) return
+  setRunning(true); setEntries([]); setTaskId(null)
+  push({ type: 'goal', text: goal })
+
+  // get or create session id
+  let sessionId = localStorage.getItem('session_id')
+  if (!sessionId) {
+    sessionId = crypto.randomUUID()
+    localStorage.setItem('session_id', sessionId)
   }
+
+  try {
+    const { data, error } = await runRunPost({ query: { goal, session_id: sessionId } })
+    if (error) throw new Error(JSON.stringify(error))
+    const id = (data as any)?.task_id ?? (data as any)?.id
+    if (!id) throw new Error('no task_id in response')
+    setTaskId(id)
+    push({ type: 'id', text: id })
+    connectWS(id)
+  } catch (err: any) {
+    push({ type: 'disc', text: 'error: ' + err.message })
+    setRunning(false)
+  }
+}
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'var(--font-mono, monospace)', background: '#0d0d0d' }}>
